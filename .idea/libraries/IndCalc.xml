@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="IndCalc">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/IndCalc.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

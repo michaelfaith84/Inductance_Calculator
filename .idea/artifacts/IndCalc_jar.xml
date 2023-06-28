@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="IndCalc:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/IndCalc_jar</output-path>
+    <root id="archive" name="IndCalc.jar">
+      <element id="module-output" name="Inductance_Calculator" />
+    </root>
+  </artifact>
+</component>
