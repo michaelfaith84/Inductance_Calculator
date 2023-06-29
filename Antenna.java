@@ -3,10 +3,19 @@ import java.util.InputMismatchException;
 import java.util.Scanner;
 
 public class Antenna {
+    /**
+     * The types of antennae supported.
+     */
     public enum Types { SQUARE, ROUND }
+
+    /**
+     * The type of antenna this object represents.
+     */
     public Types type;
     private Scanner input;
-    // Number of decimal places that 'convert' will return
+    /**
+     * The number of decimal places the inductance will be formatted to.
+     */
     private int DECIMAL_PLACES = 3;
     private SquareAntenna square;
     private RoundAntenna round;
@@ -31,10 +40,16 @@ public class Antenna {
 
         System.out.println();
         System.out.printf("The inductance of the coil is: %s\n", getInductance());
+        if (!validateInductance()) {
+            System.out.println("\tCoil is out of the 300nH - 3µH inductance range.");
+        }
         System.out.println();
     }
 
-    // Returns a double from the user
+    /**
+     * @param msg - The message that should be presented to the user.
+     * @return double - The double value the user entered.
+     */
     private double getValidDouble(String msg) {
         double value;
         System.out.println(msg);
@@ -42,6 +57,7 @@ public class Antenna {
         try {
             value = input.nextDouble();
         } catch (InputMismatchException ignored) {
+            input.nextLine();
             System.out.println("Invalid entry.");
             value = getValidDouble(msg);
         }
@@ -49,7 +65,11 @@ public class Antenna {
         return value;
     }
 
-    // Converts the raw inductance to the appropriate unit
+    /**
+     *
+     * @param val - The raw inductance to be formatted.
+     * @return String - The formatted inductance.
+     */
     private String convert(double val) {
         // Unit prefixes
         String[] PREFIX_ARRAY = new String[]{"f", "p", "n", "µ", "m", "", "k", "M", "G", "T"};
@@ -57,8 +77,7 @@ public class Antenna {
         if (val == 0.0) {
             return String.format("%." + DECIMAL_PLACES + "fH", 0.0);
         } else {
-            double posVal = val < 0.0 ? -val : val;
-            double log10 = Math.log10(posVal);
+            double log10 = Math.log10(Math.abs(val));
             int count = (int) Math.floor(log10 / 3.0);
             int index = count + 5;
             val /= Math.pow(10.0, count * 3);
@@ -66,6 +85,10 @@ public class Antenna {
         }
     }
 
+    /**
+     * Returns an associative array detailing the antenna's specs.
+     * @return TreeMap
+     */
     public TreeMap<String, String> getDetails() {
         if (type == Types.ROUND) {
             return round.getDetails();
@@ -74,7 +97,9 @@ public class Antenna {
         }
     }
 
-    // Prints key/value maps of the constructed antenna to the console
+    /**
+     * Prints the key/value map detailing the antenna to the console.
+     */
     public void printDetails() {
         TreeMap<String, String> details;
 
@@ -89,29 +114,68 @@ public class Antenna {
         System.out.println();
     }
 
-    // Returns the antenna's inductance
+    /**
+     * Returns the converted, stringified inductance.
+     * @return String
+     */
     public String getInductance() {
         if (type == Types.ROUND) {
-            return round.getInductance();
+            return convert(round.getInductance());
         } else {
-            return square.getInductance();
+            return convert(square.getInductance());
         }
     }
 
+    /**
+     * 300nH to 3µH is the target.
+     * @return boolean
+     */
+    public boolean validateInductance() {
+        String inductance = getInductance();
+        String units = inductance.substring(inductance.length() - 2);
+        int number = Integer.parseInt(inductance.substring(0, inductance.length() -2).split("\\.")[0]);
+
+        return (units.equals("nH") && number >= 300) || (units.equals("µH") && number <= 3);
+    }
+
+    /**
+     * These methods are important for working with the existing application.<br /><br />
+     */
     interface AntennaMethods {
+        /**
+         * This prompts the user for relevant information to their antenna.
+         */
         void getVariables();
-        String getInductance();
+        /**
+         * This should return the raw inductance.
+         * @return double
+         */
+        double getInductance();
+
+        /**
+         * This should return an associative array of relevant key/value pairs.
+         * @return TreeMap
+         */
         TreeMap<String, String> getDetails();
     }
 
     class RoundAntenna implements AntennaMethods {
-        private double averageDiameter;
-        private double width;
+        /**
+         * Diameter -> d
+         */
+        private double diameter;
+        /**
+         * Average Width -> s
+         */
+        private double averageWidth;
+        /**
+         * Number of Turns -> Na
+         */
         private double numberOfTurns;
 
         RoundAntenna() {
-            this.averageDiameter = 0.0;
-            this.width = 0.0;
+            this.diameter = 0.0;
+            this.averageWidth = 0.0;
             this.numberOfTurns = 0.0;
 
             System.out.println();
@@ -123,16 +187,16 @@ public class Antenna {
 
         @Override
         public void getVariables() {
-            averageDiameter = getValidDouble("Enter the average diameter[D] of the NFC antenna: ");
+            diameter = getValidDouble("Enter the average diameter[d] of the NFC antenna: ");
 
-            width = getValidDouble("Enter the width[s] of the NFC antenna: ");
+            averageWidth = getValidDouble("Enter the width[s] of the NFC antenna: ");
 
-            numberOfTurns = getValidDouble("Enter the number of turns[Na] of the NFC antenna: ");
+            numberOfTurns = getValidDouble("Enter the number of turns[Na] of the NFC antenna: (1-6 is ideal)");
         }
 
         @Override
-        public String getInductance() {
-            return convert(24.6 * Math.pow(numberOfTurns, 2.0) * (averageDiameter / 10.0) / (1.0 + 2.75 * (width / 10.0 / (averageDiameter / 10.0))) * 1.0E-9);
+        public double getInductance() {
+            return 24.6 * Math.pow(numberOfTurns, 2.0) * (diameter / 10.0) / (1.0 + 2.75 * (averageWidth / 10.0 / (diameter / 10.0))) * 1.0E-9;
         }
 
         @Override
@@ -140,25 +204,52 @@ public class Antenna {
             TreeMap<String, String> details = new TreeMap<>();
 
             details.put("type", "round");
-            details.put("Dr", String.valueOf(averageDiameter));
-            details.put("s", String.valueOf(width));
+            details.put("d", String.valueOf(diameter));
+            details.put("s", String.valueOf(averageWidth));
             details.put("Na", String.valueOf(numberOfTurns));
-            details.put("La", getInductance());
+            details.put("La", convert(getInductance()));
 
             return details;
         }
     }
 
     class SquareAntenna implements AntennaMethods {
+        /**
+         * Overall Width -> a0
+         */
         private double width;
+        /**
+         * Overall Height -> b0
+         */
         private double height;
+        /**
+         * Track Thickness -> t
+         */
         private double trackThickness;
+        /**
+         * Track Width -> w
+         */
         private double trackWidth;
+        /**
+         * Track Spacing -> g
+         */
         private double trackSpacing;
+        /**
+         * Number of Turns -> Na
+         */
         private double numberOfTurns;
-        private double aAvg;
-        private double bAvg;
-        private double dS;
+        /**
+         * Average Width -> Aavg
+         */
+        private double averageWidth;
+        /**
+         * Average Height -> Bavg
+         */
+        private double averageHeight;
+        /**
+         * Diameter -> d
+         */
+        private double diameter;
 
         SquareAntenna() {
             this.width = 0.0;
@@ -167,7 +258,7 @@ public class Antenna {
             this.trackWidth = 0.0;
             this.trackSpacing = 0.0;
             this.numberOfTurns = 0.0;
-            this.dS = 0.0;
+            this.diameter = 0.0;
 
             getVariables();
         }
@@ -184,17 +275,17 @@ public class Antenna {
 
             trackSpacing = getValidDouble("Enter the track spacing[g] of the NFC antenna:\n(0.254mm = 10mils)");
 
-            numberOfTurns = getValidDouble("Enter the number of turns[Na] of the NFC antenna: ");
+            numberOfTurns = getValidDouble("Enter the number of turns[Na] of the NFC antenna: (1-6 is ideal)");
 
-            calcAAvg();
-            calcBAvg();
-            calcDS();
+            calcAverageWidth();
+            calcAverageHeight();
+            calcDiameter();
         }
 
         @Override
-        public String getInductance() {
-            double u0 = 1.256637062E-9;
-            return convert(u0 / Math.PI * (calcx1() + calcx2() - calcx3() + calcx4()) * Math.pow(numberOfTurns, 1.8));
+        public double getInductance() {
+            final double u0 = 1.256637062E-9;
+            return u0 / Math.PI * (calcx1() + calcx2() - calcx3() + calcx4()) * Math.pow(numberOfTurns, 1.8);
         }
 
         @Override
@@ -208,37 +299,37 @@ public class Antenna {
             details.put("t", String.valueOf(trackThickness));
             details.put("g", String.valueOf(trackSpacing));
             details.put("Na", String.valueOf(numberOfTurns));
-            details.put("La", getInductance());
+            details.put("La", convert(getInductance()));
 
             return details;
         }
 
-        private void calcAAvg() {
-            aAvg = width - numberOfTurns * (trackSpacing + trackWidth);
+        private void calcAverageWidth() {
+            averageWidth = width - numberOfTurns * (trackSpacing + trackWidth);
         }
 
-        private void calcBAvg() {
-            bAvg = height - numberOfTurns * (trackSpacing + trackWidth);
+        private void calcAverageHeight() {
+            averageHeight = height - numberOfTurns * (trackSpacing + trackWidth);
         }
 
-        private void calcDS() {
-            dS = 2.0 * (trackThickness + trackWidth) / Math.PI;
+        private void calcDiameter() {
+            diameter = 2.0 * (trackThickness + trackWidth) / Math.PI;
         }
 
         private double calcx1() {
-            return aAvg * Math.log(2.0 * aAvg * bAvg / (dS * (aAvg + Math.sqrt(Math.pow(aAvg, 2.0) + Math.pow(bAvg, 2.0)))));
+            return averageWidth * Math.log(2.0 * averageWidth * averageHeight / (diameter * (averageWidth + Math.sqrt(Math.pow(averageWidth, 2.0) + Math.pow(averageHeight, 2.0)))));
         }
 
         private double calcx2() {
-            return bAvg * Math.log(2.0 * aAvg * bAvg / (dS * (bAvg + Math.sqrt(Math.pow(aAvg, 2.0) + Math.pow(bAvg, 2.0)))));
+            return averageHeight * Math.log(2.0 * averageWidth * averageHeight / (diameter * (averageHeight + Math.sqrt(Math.pow(averageWidth, 2.0) + Math.pow(averageHeight, 2.0)))));
         }
 
         private double calcx3() {
-            return 2.0 * (aAvg + bAvg - Math.sqrt(Math.pow(aAvg, 2.0) + Math.pow(bAvg, 2.0)));
+            return 2.0 * (averageWidth + averageHeight - Math.sqrt(Math.pow(averageWidth, 2.0) + Math.pow(averageHeight, 2.0)));
         }
 
         private double calcx4() {
-            return  (aAvg + bAvg) / 4.0;
+            return  (averageWidth + averageHeight) / 4.0;
         }
     }
 }
