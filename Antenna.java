@@ -285,7 +285,11 @@ public class Antenna {
         @Override
         public double getInductance() {
             final double u0 = 1.256637062E-9;
-            return u0 / Math.PI * (calcx1() + calcx2() - calcx3() + calcx4()) * Math.pow(numberOfTurns, 1.8);
+            double x1 = calcx1();
+            double x2 = calcx2();
+            double x3 = calcx3();
+            double x4 = calcx4();
+            return u0 / Math.PI * (x1 + x2 - x3 + x4) * Math.pow(numberOfTurns, 1.8);
         }
 
         @Override
@@ -317,7 +321,11 @@ public class Antenna {
         }
 
         private double calcx1() {
-            return averageWidth * Math.log(2.0 * averageWidth * averageHeight / (diameter * (averageWidth + Math.sqrt(Math.pow(averageWidth, 2.0) + Math.pow(averageHeight, 2.0)))));
+            double heightWidthProduct = 2.0 * averageWidth * averageHeight;
+            double innerNest = diameter * (averageWidth + Math.sqrt(Math.pow(averageWidth, 2.0) + Math.pow(averageHeight, 2.0)));
+            double division = heightWidthProduct / innerNest;
+            double log = Math.log(division);
+            return averageWidth * log;
         }
 
         private double calcx2() {
